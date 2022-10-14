@@ -381,7 +381,6 @@ func TestPackagesAndErrors(ctx context.Context, opts PackageOpts, p *Package, co
 
 	var data []byte
 	if libFuzzerMode {
-		panic("Here")
 		data, err = formatTestmainLibfuzzer(t)
 		if err != nil && pmain.Error == nil {
 			pmain.Error = &PackageError{Err: err}
@@ -944,10 +943,10 @@ var testmainTmplLibFuzzer = lazytemplate.New("main", `
 // +build ignore
 package main
 import (
-	"testing"
+	//"testing"
 	"unsafe"
-	target {{.Package.ImportPath | printf "%q"}}
-	"github.com/AdamKorcz/go-118-fuzz-build/utils"
+	//target {{.Package.ImportPath | printf "%q"}}
+	//"github.com/AdamKorcz/go-118-fuzz-build/utils"
 )
 // #include <stdint.h>
 import "C"
@@ -955,13 +954,13 @@ import "C"
 func LLVMFuzzerTestOneInput(data *C.char, size C.size_t) C.int {
 	panic("here")
 	s := (*[1<<30]byte)(unsafe.Pointer(data))[:size:size]
-	//target.{{.Name}}(s)
-	LibFuzzer{{.Name}}(s)
+	
+	LibFuzzerFuzzFoo(s)
 	return 0
 }
-func LibFuzzer{{.Name}}(data []byte) int {
-	fuzzer := &utils.F{Data:data, T:&testing.T{}}
-	target.{{.Name}}(fuzzer)
+func LibFuzzerFuzzFoo(data []byte) int {
+	//fuzzer := &utils.F{Data:data, T:&testing.T{}}
+	//target.FuzzFoo(fuzzer)
 	return 1
 }
 func main() {
