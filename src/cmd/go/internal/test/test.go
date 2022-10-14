@@ -538,6 +538,8 @@ var (
 	testTimeout      time.Duration                     // -timeout flag
 	testV            bool                              // -v flag
 	testVet          = vetFlag{flags: defaultVetFlags} // -vet flag
+
+	testLibFuzzer bool // custom libFuzzer flag
 )
 
 var (
@@ -656,6 +658,10 @@ func runTest(ctx context.Context, cmd *base.Command, args []string) {
 	if len(pkgs) == 0 {
 		base.Fatalf("no packages to test")
 	}
+
+	/*if testC && !testLibFuzzer && testFuzz == "" {
+		base.Fatalf("cannot use -testLibFuzzer flag without -c and -fuzz")
+	}*/
 
 	if testC && len(pkgs) != 1 {
 		base.Fatalf("cannot use -c flag with multiple packages")
@@ -872,9 +878,19 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 			Paths: cfg.BuildCoverPkg,
 		}
 	}
-	pmain, ptest, pxtest, err := load.TestPackagesFor(ctx, pkgOpts, p, cover)
-	if err != nil {
-		return nil, nil, nil, err
+
+	var pmain, ptest, pxtest *load.Package
+
+	if testC && testLibFuzzer {
+		pmain, ptest, pxtest, err = load.TestPackagesFor(ctx, pkgOpts, p, cover, true)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else {
+		pmain, ptest, pxtest, err = load.TestPackagesFor(ctx, pkgOpts, p, cover, false)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
 	// If imported is true then this package is imported by some
