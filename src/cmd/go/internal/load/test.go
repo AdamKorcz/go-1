@@ -944,14 +944,14 @@ var testmainTmplLibFuzzer = lazytemplate.New("main", `
 package main
 import (
 	//"testing"
-	"unsafe"
+	//"unsafe"
 	//target {{.Package.ImportPath | printf "%q"}}
 	//"github.com/AdamKorcz/go-118-fuzz-build/utils"
 )
 // #include <stdint.h>
-import "C"
+// import "C"
 //export LLVMFuzzerTestOneInput
-func LLVMFuzzerTestOneInput(data *C.char, size C.size_t) C.int {
+/*func LLVMFuzzerTestOneInput(data *C.char, size C.size_t) C.int {
 	panic("here")
 	s := (*[1<<30]byte)(unsafe.Pointer(data))[:size:size]
 	
@@ -962,7 +962,8 @@ func LibFuzzerFuzzFoo(data []byte) int {
 	//fuzzer := &utils.F{Data:data, T:&testing.T{}}
 	//target.FuzzFoo(fuzzer)
 	return 1
-}
+}*/
 func main() {
+	panic("Did it")
 }
 `)

@@ -845,7 +845,9 @@ func runTest(ctx context.Context, cmd *base.Command, args []string) {
 			}
 		}
 	}
-
+	if testLibFuzzer {
+		fmt.Println("test.go line 849")
+	}
 	b.Do(ctx, root)
 }
 
@@ -857,6 +859,9 @@ var windowsBadWords = []string{
 }
 
 func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts, p *load.Package, imported bool) (buildAction, runAction, printAction *work.Action, err error) {
+	if testLibFuzzer {
+		fmt.Println("test.go line 863")
+	}
 	if len(p.TestGoFiles)+len(p.XTestGoFiles) == 0 {
 		build := b.CompileAction(work.ModeBuild, work.ModeBuild, p)
 		run := &work.Action{Mode: "test run", Package: p, Deps: []*work.Action{build}}
@@ -880,7 +885,10 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 	}
 
 	var pmain, ptest, pxtest *load.Package
-
+	if testLibFuzzer {
+		fmt.Println("test.go line 889")
+	}
+	
 	if testC && testLibFuzzer {
 		pmain, ptest, pxtest, err = load.TestPackagesFor(ctx, pkgOpts, p, cover, true)
 		if err != nil {
@@ -897,7 +905,13 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 	// package being tested. Make building the test version of the
 	// package depend on building the non-test version, so that we
 	// only report build errors once. Issue #44624.
+	if testLibFuzzer {
+		fmt.Println("test.go line 909")
+	}
 	if imported && ptest != p {
+		if testLibFuzzer {
+			fmt.Println("test.go line 913")
+		}
 		buildTest := b.CompileAction(work.ModeBuild, work.ModeBuild, ptest)
 		buildP := b.CompileAction(work.ModeBuild, work.ModeBuild, p)
 		buildTest.Deps = append(buildTest.Deps, buildP)
@@ -935,7 +949,15 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 	// so that the default file path stripping applies to _testmain.go.
 	b.CompileAction(work.ModeBuild, work.ModeBuild, pmain).Objdir = testDir
 
-	a := b.LinkAction(work.ModeBuild, work.ModeBuild, pmain)
+	var a *work.Action
+	if testLibFuzzer {
+		if testLibFuzzer {
+			fmt.Println("test.go line 955")
+		}
+		a = b.LinkAction(work.ModeInstall, work.ModeInstall, pmain)
+	} else {
+		a = b.LinkAction(work.ModeBuild, work.ModeBuild, pmain)		
+	}
 	a.Target = testDir + testBinary + cfg.ExeSuffix
 	if cfg.Goos == "windows" {
 		// There are many reserved words on Windows that,
@@ -968,6 +990,9 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 		}
 	}
 	buildAction = a
+	if testLibFuzzer {
+		fmt.Println("test.go line 994")
+	}
 	var installAction, cleanAction *work.Action
 	if testC || testNeedBinary() {
 		// -c or profiling flag: create action to copy binary to ./test.out.
@@ -981,6 +1006,9 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 		if target == os.DevNull {
 			runAction = buildAction
 		} else {
+			if testLibFuzzer {
+				fmt.Println("test.go line 1010")
+			}
 			pmain.Target = target
 			installAction = &work.Action{
 				Mode:    "test build",
@@ -994,6 +1022,9 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 	}
 	var vetRunAction *work.Action
 	if testC {
+		if testLibFuzzer {
+			fmt.Println("test.go line 1026")
+		}
 		printAction = &work.Action{Mode: "test print (nop)", Package: p, Deps: []*work.Action{runAction}} // nop
 		vetRunAction = printAction
 	} else {
