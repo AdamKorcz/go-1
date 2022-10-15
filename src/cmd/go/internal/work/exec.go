@@ -66,9 +66,6 @@ func actionList(root *Action) []*Action {
 
 // do runs the action graph rooted at root.
 func (b *Builder) Do(ctx context.Context, root *Action) {
-	if testLibFuzzer {
-		fmt.Println("exec.go line 70")
-	}
 	ctx, span := trace.StartSpan(ctx, "exec.Builder.Do ("+root.Mode+" "+root.Target+")")
 	defer span.Done()
 
@@ -93,9 +90,6 @@ func (b *Builder) Do(ctx context.Context, root *Action) {
 	for i, a := range all {
 		a.priority = i
 	}
-	if testLibFuzzer {
-		fmt.Println("exec.go line 97")
-	}
 
 	// Write action graph, without timing information, in case we fail and exit early.
 	writeActionGraph := func() {
@@ -113,9 +107,6 @@ func (b *Builder) Do(ctx context.Context, root *Action) {
 		}
 	}
 	writeActionGraph()
-	if testLibFuzzer {
-		fmt.Println("exec.go line 117")
-	}
 
 	b.readySema = make(chan bool, len(all))
 
@@ -131,9 +122,6 @@ func (b *Builder) Do(ctx context.Context, root *Action) {
 		}
 	}
 
-	if testLibFuzzer {
-		fmt.Println("exec.go line 135")
-	}
 	// Handle runs a single action and takes care of triggering
 	// any actions that are runnable as a result.
 	handle := func(ctx context.Context, a *Action) {
@@ -199,9 +187,6 @@ func (b *Builder) Do(ctx context.Context, root *Action) {
 	par := cfg.BuildP
 	if cfg.BuildN {
 		par = 1
-	}
-	if testLibFuzzer {
-		fmt.Println("exec.go line 204")
 	}
 	for i := 0; i < par; i++ {
 		wg.Add(1)

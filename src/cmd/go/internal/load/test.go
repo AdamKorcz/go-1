@@ -949,7 +949,7 @@ import (
 	//"github.com/AdamKorcz/go-118-fuzz-build/utils"
 )
 // #include <stdint.h>
-// import "C"
+import "C"
 //export LLVMFuzzerTestOneInput
 /*func LLVMFuzzerTestOneInput(data *C.char, size C.size_t) C.int {
 	panic("here")
