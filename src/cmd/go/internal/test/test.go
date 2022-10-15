@@ -804,7 +804,9 @@ func runTest(ctx context.Context, cmd *base.Command, args []string) {
 		if cfg.BuildCover && cfg.BuildCoverMode == "atomic" {
 			load.EnsureImport(p, "sync/atomic")
 		}
-
+		if testLibFuzzer {
+			fmt.Println("test.go line 808")
+		}
 		buildTest, runTest, printTest, err := builderTest(b, ctx, pkgOpts, p, allImports[p])
 		if err != nil {
 			str := err.Error()
@@ -846,7 +848,7 @@ func runTest(ctx context.Context, cmd *base.Command, args []string) {
 		}
 	}
 	if testLibFuzzer {
-		fmt.Println("test.go line 849")
+		fmt.Println("test.go line 856")
 	}
 	b.Do(ctx, root)
 }
@@ -860,7 +862,7 @@ var windowsBadWords = []string{
 
 func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts, p *load.Package, imported bool) (buildAction, runAction, printAction *work.Action, err error) {
 	if testLibFuzzer {
-		fmt.Println("test.go line 863")
+		fmt.Println("test.go line 870")
 	}
 	if len(p.TestGoFiles)+len(p.XTestGoFiles) == 0 {
 		build := b.CompileAction(work.ModeBuild, work.ModeBuild, p)
@@ -886,12 +888,13 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 
 	var pmain, ptest, pxtest *load.Package
 	if testLibFuzzer {
-		fmt.Println("test.go line 889")
+		fmt.Println("test.go line 896")
 	}
 	
 	if testC && testLibFuzzer {
 		pmain, ptest, pxtest, err = load.TestPackagesFor(ctx, pkgOpts, p, cover, true)
 		if err != nil {
+			fmt.Println("err::::::::::::::", err)
 			return nil, nil, nil, err
 		}
 	} else {
@@ -906,11 +909,11 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 	// package depend on building the non-test version, so that we
 	// only report build errors once. Issue #44624.
 	if testLibFuzzer {
-		fmt.Println("test.go line 909")
+		fmt.Println("test.go line 916")
 	}
 	if imported && ptest != p {
 		if testLibFuzzer {
-			fmt.Println("test.go line 913")
+			fmt.Println("test.go line 920")
 		}
 		buildTest := b.CompileAction(work.ModeBuild, work.ModeBuild, ptest)
 		buildP := b.CompileAction(work.ModeBuild, work.ModeBuild, p)
@@ -936,6 +939,9 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 
 	pmain.Dir = testDir
 	pmain.Internal.OmitDebug = !testC && !testNeedBinary()
+	/*if testLibFuzzer {
+		pmain.Internal.FuzzInstrument = true
+	}*/
 
 	if !cfg.BuildN {
 		// writeTestmain writes _testmain.go,
@@ -951,10 +957,14 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 
 	var a *work.Action
 	if testLibFuzzer {
-		if testLibFuzzer {
-			fmt.Println("test.go line 955")
-		}
-		a = b.LinkAction(work.ModeInstall, work.ModeInstall, pmain)
+		
+		fmt.Println("test.go line 962")
+		//pmain.CgoFiles = []string{testDir+"_testmain.go"}
+		
+		fmt.Println("p.UsesCgo(): ", pmain.UsesCgo(), "cfg.BuildBuildmode: ", cfg.BuildBuildmode)
+		fmt.Println("cfg.BuildContext.Compiler: ", cfg.BuildContext.Compiler)
+		a = b.LinkAction(work.ModeBuild, work.ModeBuild, pmain)
+		//a = b.InstallActionLibFuzzer(a, work.ModeBuild)
 	} else {
 		a = b.LinkAction(work.ModeBuild, work.ModeBuild, pmain)		
 	}
@@ -991,7 +1001,7 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 	}
 	buildAction = a
 	if testLibFuzzer {
-		fmt.Println("test.go line 994")
+		fmt.Println("test.go line 1001")
 	}
 	var installAction, cleanAction *work.Action
 	if testC || testNeedBinary() {
@@ -1006,12 +1016,16 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 		if target == os.DevNull {
 			runAction = buildAction
 		} else {
+			var actionMode string
 			if testLibFuzzer {
-				fmt.Println("test.go line 1010")
+				fmt.Println("test.go line 1017")
+				actionMode = "go build"
+			} else {
+				actionMode = "test build"
 			}
 			pmain.Target = target
 			installAction = &work.Action{
-				Mode:    "test build",
+				Mode:    actionMode,
 				Func:    work.BuildInstallFunc,
 				Deps:    []*work.Action{buildAction},
 				Package: pmain,
@@ -1023,7 +1037,7 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 	var vetRunAction *work.Action
 	if testC {
 		if testLibFuzzer {
-			fmt.Println("test.go line 1026")
+			fmt.Println("test.go line 1033")
 		}
 		printAction = &work.Action{Mode: "test print (nop)", Package: p, Deps: []*work.Action{runAction}} // nop
 		vetRunAction = printAction
@@ -1057,7 +1071,7 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 		}
 	}
 
-	if len(ptest.GoFiles)+len(ptest.CgoFiles) > 0 {
+	if (len(ptest.GoFiles)+len(ptest.CgoFiles) > 0) || testLibFuzzer {
 		addTestVet(b, ptest, vetRunAction, installAction)
 	}
 	if pxtest != nil {

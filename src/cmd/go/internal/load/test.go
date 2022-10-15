@@ -248,6 +248,7 @@ func TestPackagesAndErrors(ctx context.Context, opts PackageOpts, p *Package, co
 		pxtest.collectDeps()
 	}
 
+
 	// Build main package.
 	pmain = &Package{
 		PackagePublic: PackagePublic{
@@ -273,6 +274,11 @@ func TestPackagesAndErrors(ctx context.Context, opts PackageOpts, p *Package, co
 	// The generated main also imports testing, regexp, and os.
 	// Also the linker introduces implicit dependencies reported by LinkerDeps.
 	stk.Push("testmain")
+	if libFuzzerMode {
+		fmt.Println("load/test.go line 278")
+		/*TestMainDeps = append(TestMainDeps, "runtime/cgo")
+		TestMainDeps = append(TestMainDeps, "C")*/
+	}
 	deps := TestMainDeps // cap==len, so safe for append
 	for _, d := range LinkerDeps(p) {
 		deps = append(deps, d)
@@ -302,6 +308,9 @@ func TestPackagesAndErrors(ctx context.Context, opts PackageOpts, p *Package, co
 			pmain.Internal.Imports = append(pmain.Internal.Imports, p1)
 		}
 	}
+	if libFuzzerMode {
+		fmt.Println("load/test.go line 313")
+	}
 
 	allTestImports := make([]*Package, 0, len(pmain.Internal.Imports)+len(imports)+len(ximports))
 	allTestImports = append(allTestImports, pmain.Internal.Imports...)
@@ -327,6 +336,9 @@ func TestPackagesAndErrors(ctx context.Context, opts PackageOpts, p *Package, co
 		pmain.Internal.Imports = append(pmain.Internal.Imports, pxtest)
 		pmain.Imports = append(pmain.Imports, pxtest.ImportPath)
 		t.ImportXtest = true
+	}
+	if libFuzzerMode {
+		fmt.Println("load/test.go line 341")
 	}
 	pmain.collectDeps()
 
@@ -378,6 +390,9 @@ func TestPackagesAndErrors(ctx context.Context, opts PackageOpts, p *Package, co
 			}
 		}
 	}
+	if libFuzzerMode {
+		fmt.Println("load/test.go line 394")
+	}
 
 	var data []byte
 	if libFuzzerMode {
@@ -394,6 +409,9 @@ func TestPackagesAndErrors(ctx context.Context, opts PackageOpts, p *Package, co
 	// Set TestmainGo even if it is empty: the presence of a TestmainGo
 	// indicates that this package is, in fact, a test main.
 	pmain.Internal.TestmainGo = &data
+	if libFuzzerMode {
+		fmt.Println("load/test.go line 413")
+	}
 
 	return pmain, ptest, pxtest
 }
@@ -945,13 +963,14 @@ package main
 import (
 	//"testing"
 	//"unsafe"
+	//_ "runtime/cgo"
 	//target {{.Package.ImportPath | printf "%q"}}
 	//"github.com/AdamKorcz/go-118-fuzz-build/utils"
 )
 // #include <stdint.h>
-import "C"
+/*import "C"
 //export LLVMFuzzerTestOneInput
-/*func LLVMFuzzerTestOneInput(data *C.char, size C.size_t) C.int {
+func LLVMFuzzerTestOneInput(data *C.char, size C.size_t) C.int {
 	panic("here")
 	s := (*[1<<30]byte)(unsafe.Pointer(data))[:size:size]
 	
