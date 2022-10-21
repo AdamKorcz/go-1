@@ -1,3 +1,6 @@
+/*
+CGO_ENABLED=1 /home/adam/Documents/forked-go/bin/go test -testLibFuzzer -ldflags=-linkmode=external -gcflags all=-d=libfuzzer  -c -o adambinary -fuzz=FuzzFoo
+*/
 // Copyright 2011 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -11,6 +14,7 @@ import (
 	"fmt"
 	"internal/platform"
 	"io"
+	"io/ioutil"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -625,6 +629,97 @@ var defaultVetFlags = []string{
 	// "-unusedresult",
 }
 
+func buildLibFuzzer(ctx context.Context, pkgs []*load.Package) {
+
+	pmain, err := load.FmtTestMainLibFuzzer()
+	if err != nil {
+		panic(err)
+	}
+	mainFile, err := ioutil.TempFile(".", "main.*.go")
+	if err != nil {
+		panic("failed to create temporary file")
+	}
+	defer os.Remove(mainFile.Name())
+
+	err = mainTmpl.Execute(mainFile, nil)
+
+	args := []string{"build", "-o", "libFuzzer", "-buildLibFuzzer"}
+	args = append(args, buildFlags...)
+	args = append(args, mainFile.Name())
+	cmd := exec.Command("/home/adam/Documents/forked-go/bin/go", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		log.Fatal("failed to build packages:", err)
+	}
+	/*
+
+	b := work.NewBuilder("")
+	defer func() {
+		if err := b.Close(); err != nil {
+			base.Fatalf("go: %v", err)
+		}
+	}()
+	testDir := b.NewObjdir()
+	if err := b.Mkdir(testDir); err != nil {
+		panic(err)
+	}
+
+	/*if err := os.WriteFile(testDir+"_testmain.go", pmain, 0666); err != nil {
+		panic(err)
+	}*/
+
+	/*if len(pkgs) == 1 && pkgs[0].Name == "main" && cfg.BuildO == "" {
+		cfg.BuildO = pkgs[0].DefaultExecName()
+		cfg.BuildO += cfg.ExeSuffix
+	}*/
+
+	/*depMode := work.ModeBuild
+
+	b.CompileAction(work.ModeBuild, work.ModeBuild, pmain).Objdir = testDir
+	
+	// If the -o name exists and is a directory or
+	// ends with a slash or backslash, then
+	// write all main packages to that directory.
+	// Otherwise require only a single package be built.
+	a := &work.Action{Mode: "go build"}
+	testBinary := "adam.test"
+	a.Target = filepath.Join(base.Cwd(), testBinary)
+	for _, p := range pkgs {
+		if p.Name != "main" {
+			continue
+		}
+
+		p.Target = filepath.Join(cfg.BuildO, p.DefaultExecName())
+		p.Target += cfg.ExeSuffix
+		//p.Target += cfg.ExeSuffix
+		p.Stale = true
+		p.StaleReason = "build -o flag in use"
+		a.Deps = append(a.Deps, b.AutoAction(work.ModeInstall, depMode, p))
+	}
+	if len(a.Deps) == 0 {
+		base.Fatalf("go: no main packages to build")
+	}
+	fmt.Println("first")
+	files, err := ioutil.ReadDir(testDir)
+	if err != nil {
+	    panic(err)
+	}
+	for _, f := range files {
+	    fmt.Println(f.Name())
+	}
+	b.Do(ctx, a)
+	fmt.Println("second")
+	files, err = ioutil.ReadDir(testDir)
+	if err != nil {
+	    panic(err)
+	}
+	for _, f := range files {
+	    fmt.Println(f.Name())
+	}*/
+}
+
 func runTest(ctx context.Context, cmd *base.Command, args []string) {
 	pkgArgs, testArgs = testFlags(args)
 	modload.InitWorkfile() // The test command does custom flag processing; initialize workspaces after that.
@@ -653,10 +748,21 @@ func runTest(ctx context.Context, cmd *base.Command, args []string) {
 	work.VetExplicit = testVet.explicit
 
 	pkgOpts := load.PackageOpts{ModResolveTests: true}
+	if testLibFuzzer {
+		pkgOpts.ForceCgo = true
+	}
 	pkgs = load.PackagesAndErrors(ctx, pkgOpts, pkgArgs)
 	load.CheckPackageErrors(pkgs)
 	if len(pkgs) == 0 {
 		base.Fatalf("no packages to test")
+	}
+	if testLibFuzzer {
+		for _, pp := range pkgs {
+			fmt.Println(pp.Deps)
+		}
+		fmt.Println(pkgs)
+		buildLibFuzzer(ctx, pkgs)
+		return
 	}
 
 	/*if testC && !testLibFuzzer && testFuzz == "" {
@@ -804,7 +910,9 @@ func runTest(ctx context.Context, cmd *base.Command, args []string) {
 		if cfg.BuildCover && cfg.BuildCoverMode == "atomic" {
 			load.EnsureImport(p, "sync/atomic")
 		}
-		if testLibFuzzer {
+		if testLibFuzzer {			
+			//load.EnsureImport(p, "runtime/cgo")
+			/*load.EnsureImport(p, "C")*/
 			fmt.Println("test.go line 808")
 		}
 		buildTest, runTest, printTest, err := builderTest(b, ctx, pkgOpts, p, allImports[p])
@@ -963,7 +1071,7 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 		
 		fmt.Println("p.UsesCgo(): ", pmain.UsesCgo(), "cfg.BuildBuildmode: ", cfg.BuildBuildmode)
 		fmt.Println("cfg.BuildContext.Compiler: ", cfg.BuildContext.Compiler)
-		a = b.LinkAction(work.ModeBuild, work.ModeBuild, pmain)
+		a = b.LinkAction(work.ModeInstall, work.ModeBuild, pmain)
 		//a = b.InstallActionLibFuzzer(a, work.ModeBuild)
 	} else {
 		a = b.LinkAction(work.ModeBuild, work.ModeBuild, pmain)		
@@ -1071,7 +1179,7 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 		}
 	}
 
-	if (len(ptest.GoFiles)+len(ptest.CgoFiles) > 0) || testLibFuzzer {
+	if (len(ptest.GoFiles)+len(ptest.CgoFiles) > 0) {
 		addTestVet(b, ptest, vetRunAction, installAction)
 	}
 	if pxtest != nil {

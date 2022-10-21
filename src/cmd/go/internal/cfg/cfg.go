@@ -74,6 +74,7 @@ var (
 	BuildMSan              bool                    // -msan flag
 	BuildASan              bool                    // -asan flag
 	BuildCover             bool                    // -cover flag
+	BuildLibFuzzer             bool                
 	BuildCoverMode         string                  // -covermode flag
 	BuildCoverPkg          []string                // -coverpkg flag
 	BuildN                 bool                    // -n flag

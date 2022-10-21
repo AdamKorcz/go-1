@@ -1861,6 +1861,9 @@ func (p *Package) load(ctx context.Context, opts PackageOpts, path string, stk *
 		if p.UsesCgo() && (!p.Standard || !cgoSyscallExclude[p.ImportPath]) {
 			addImport("syscall", true)
 		}
+		/*if opts.ForceCgo {
+			addImport("C", true)
+		}*/
 
 		// SWIG adds imports of some standard packages.
 		if p.UsesSwig() {
@@ -2770,6 +2773,9 @@ type PackageOpts struct {
 	// SuppressBuildInfo is true if the caller does not need p.Stale, p.StaleReason, or p.Internal.BuildInfo
 	// to be populated on the package.
 	SuppressBuildInfo bool
+
+	// Force add of "C" and "runtime/cgo"
+	ForceCgo bool
 }
 
 // PackagesAndErrors returns the packages named by the command line arguments

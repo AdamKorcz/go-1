@@ -319,6 +319,7 @@ func AddBuildFlags(cmd *base.Command, mask BuildFlagMask) {
 	// Undocumented, unstable debugging flags.
 	cmd.Flag.StringVar(&cfg.DebugActiongraph, "debug-actiongraph", "", "")
 	cmd.Flag.StringVar(&cfg.DebugTrace, "debug-trace", "", "")
+	cmd.Flag.BoolVar(&cfg.BuildLibFuzzer, "buildLibFuzzer", false, "")
 }
 
 // AddCoverFlags adds coverage-related flags to "cmd". If the
