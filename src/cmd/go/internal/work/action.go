@@ -722,7 +722,9 @@ func (b *Builder) LinkAction(mode, depMode BuildMode, p *load.Package) *Action {
 		a1.Deps = append(a1.Deps, &Action{Mode: "nop", Deps: a.Deps[1:]})
 		return a
 	})
-
+	if os.Getenv("TESTFUZZ") == "ADAMS" {
+		a = b.installAction(a, mode)
+	}
 	if mode == ModeInstall || mode == ModeBuggyInstall {
 		a = b.installAction(a, mode)
 	}
@@ -849,7 +851,7 @@ func (b *Builder) addTransitiveLinkDeps(a, a1 *Action, shlib string) {
 func (b *Builder) addInstallHeaderAction(a *Action) {
 	// Install header for cgo in c-archive and c-shared modes.
 	p := a.Package
-	if p.UsesCgo() && (cfg.BuildBuildmode == "c-archive" || cfg.BuildBuildmode == "c-shared") {
+	if (p.UsesCgo() && (cfg.BuildBuildmode == "c-archive" || cfg.BuildBuildmode == "c-shared")) || os.Getenv("TESTFUZZ") == "ADAMS" {
 		hdrTarget := a.Target[:len(a.Target)-len(filepath.Ext(a.Target))] + ".h"
 		if cfg.BuildContext.Compiler == "gccgo" && cfg.BuildO == "" {
 			// For the header file, remove the "lib"
@@ -858,6 +860,9 @@ func (b *Builder) addInstallHeaderAction(a *Action) {
 			dir, file := filepath.Split(hdrTarget)
 			file = strings.TrimPrefix(file, "lib")
 			hdrTarget = filepath.Join(dir, file)
+		}
+		if os.Getenv("TESTFUZZ") == "ADAMS" && hdrTarget != ".h" {
+			panic(hdrTarget)
 		}
 		ah := &Action{
 			Mode:    "install header",

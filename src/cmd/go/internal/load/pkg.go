@@ -2322,7 +2322,9 @@ func (p *Package) setBuildInfo(ctx context.Context, autoVCS bool) {
 	}
 	buildmode := cfg.BuildBuildmode
 	if buildmode == "default" {
-		if p.Name == "main" {
+		if os.Getenv("TESTFUZZ") == "ADAMS" {
+			buildmode = "c-archive"
+		} else if p.Name == "main" {
 			buildmode = "exe"
 		} else {
 			buildmode = "archive"
@@ -2333,7 +2335,9 @@ func (p *Package) setBuildInfo(ctx context.Context, autoVCS bool) {
 	if gccgoflags := BuildGccgoflags.String(); gccgoflags != "" && cfg.BuildContext.Compiler == "gccgo" {
 		appendSetting("-gccgoflags", gccgoflags)
 	}
-	if gcflags := BuildGcflags.String(); gcflags != "" && cfg.BuildContext.Compiler == "gc" {
+	if os.Getenv("TESTFUZZ") == "ADAMS" {
+		appendSetting("-gcflags", "all=-d=libfuzzer")
+	} else if gcflags := BuildGcflags.String(); gcflags != "" && cfg.BuildContext.Compiler == "gc" {
 		appendSetting("-gcflags", gcflags)
 	}
 	if ldflags := BuildLdflags.String(); ldflags != "" {
@@ -2361,6 +2365,9 @@ func (p *Package) setBuildInfo(ctx context.Context, autoVCS bool) {
 	}
 	if tags := cfg.BuildContext.BuildTags; len(tags) > 0 {
 		appendSetting("-tags", strings.Join(tags, ","))
+	}
+	if os.Getenv("TESTFUZZ") == "ADAMS" {
+		appendSetting("-trimpath", "true")
 	}
 	if cfg.BuildTrimpath {
 		appendSetting("-trimpath", "true")
