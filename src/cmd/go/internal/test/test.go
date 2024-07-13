@@ -700,7 +700,9 @@ func runTest(ctx context.Context, cmd *base.Command, args []string) {
 	work.BuildInit()
 	work.VetFlags = testVet.flags
 	work.VetExplicit = testVet.explicit
-
+	for _, a := range pkgArgs {
+		fmt.Println("a: ", a)
+	}
 	pkgOpts := load.PackageOpts{ModResolveTests: true}
 	pkgs = load.PackagesAndErrors(ctx, pkgOpts, pkgArgs)
 	load.CheckPackageErrors(pkgs)
@@ -1040,6 +1042,15 @@ func runTest(ctx context.Context, cmd *base.Command, args []string) {
 			}
 		}
 	}
+	/*if os.Getenv("TESTFUZZ") == "ADAMS" {
+		for _, pkg := range pkgs {
+			fmt.Println("pkg.Name: ", pkg.Name)
+			for _, path := range pkg.TestImports {
+				fmt.Println("path--: ", path)
+			}
+		}
+		panic("DONE")
+	}*/
 
 	b.Do(ctx, root)
 }
@@ -1108,6 +1119,7 @@ func builderTest(b *work.Builder, ctx context.Context, pkgOpts load.PackageOpts,
 			Paths: cfg.BuildCoverPkg,
 		}
 	}
+
 	pmain, ptest, pxtest, err := load.TestPackagesFor(ctx, pkgOpts, p, cover)
 	if err != nil {
 		return nil, nil, nil, err

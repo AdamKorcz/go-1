@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"go/scanner"
 	"go/token"
+	"os"
 	"strconv"
 )
 
@@ -119,7 +120,12 @@ func NewPackage(fset *token.FileSet, files map[string]*File, importer Importer, 
 			path, _ := strconv.Unquote(spec.Path.Value)
 			pkg, err := importer(imports, path)
 			if err != nil {
-				p.errorf(spec.Path.Pos(), "could not import %s (%s)", path, err)
+
+				if os.Getenv("TESTFUZZ") == "ADAMS" {
+					fmt.Println(path, "<111")
+					panic("Here")
+				}
+				p.errorf(spec.Path.Pos(), "2: could not import %s (%s)", path, err)
 				importErrors = true
 				continue
 			}

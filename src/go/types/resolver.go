@@ -11,6 +11,7 @@ import (
 	"go/internal/typeparams"
 	"go/token"
 	. "internal/types/errors"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -145,7 +146,7 @@ func (check *Checker) importPackage(at positioner, path, dir string) *Package {
 	}
 
 	// no package yet => import it
-	if path == "C" && (check.conf.FakeImportC || check.conf.go115UsesCgo) {
+	if path == "C" && ((check.conf.FakeImportC || check.conf.go115UsesCgo) || os.Getenv("TESTFUZZ") == "ADAMS") {
 		if check.conf.FakeImportC && check.conf.go115UsesCgo {
 			check.error(at, BadImportPath, "cannot use FakeImportC and go115UsesCgo together")
 		}
@@ -175,7 +176,10 @@ func (check *Checker) importPackage(at positioner, path, dir string) *Package {
 			imp = nil // create fake package below
 		}
 		if err != nil {
-			check.errorf(at, BrokenImport, "could not import %s (%s)", path, err)
+			if os.Getenv("TESTFUZZ") == "ADAMS" {
+				panic("Testinggggg")
+			}
+			check.errorf(at, BrokenImport, "1: could not import %s (%s)", path, err)
 			if imp == nil {
 				// create a new fake package
 				// come up with a sensible package name (heuristic)

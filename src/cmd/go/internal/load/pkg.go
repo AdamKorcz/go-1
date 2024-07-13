@@ -1031,6 +1031,12 @@ func newPreload() *preload {
 func (pre *preload) preloadMatches(ctx context.Context, opts PackageOpts, matches []*search.Match) {
 	for _, m := range matches {
 		for _, pkg := range m.Pkgs {
+			if os.Getenv("TESTFUZZ") == "ADAMS" {
+				fmt.Println(pkg)
+				if pkg == "C" {
+					panic("FOUND THE C")
+				}
+			}
 			select {
 			case <-pre.cancel:
 				return
@@ -2819,6 +2825,8 @@ func PackagesAndErrors(ctx context.Context, opts PackageOpts, patterns []string)
 		matches = search.ImportPaths(patterns, noModRoots)
 	}
 
+	// Add testpackages here ADAM
+
 	var (
 		pkgs    []*Package
 		stk     ImportStack
@@ -2831,6 +2839,9 @@ func PackagesAndErrors(ctx context.Context, opts PackageOpts, patterns []string)
 
 	for _, m := range matches {
 		for _, pkg := range m.Pkgs {
+			if os.Getenv("TESTFUZZ") == "ADAMS" {
+				fmt.Println(pkg, "<111")
+			}
 			if pkg == "" {
 				panic(fmt.Sprintf("ImportPaths returned empty package for pattern %s", m.Pattern()))
 			}

@@ -98,7 +98,6 @@ func (b *Builder) Do(ctx context.Context, root *Action) {
 	for i, a := range all {
 		a.priority = i
 	}
-
 	// Write action graph, without timing information, in case we fail and exit early.
 	writeActionGraph := func() {
 		if file := cfg.DebugActiongraph; file != "" {
@@ -226,8 +225,12 @@ func (b *Builder) Do(ctx context.Context, root *Action) {
 			}
 		}()
 	}
+	if os.Getenv("TESTFUZZ") == "ADAMS" {
+		//panic("HEre")
+	}
 
 	wg.Wait()
+
 
 	// Write action graph again, this time with timing information.
 	writeActionGraph()
@@ -498,7 +501,6 @@ func (b *Builder) build(ctx context.Context, a *Action) (err error) {
 				need &^= needCompiledGoFiles
 			}
 		}
-
 		if need == 0 {
 			return nil
 		}

@@ -163,7 +163,10 @@ func (check *Checker) importPackage(pos syntax.Pos, path, dir string) *Package {
 			imp = nil // create fake package below
 		}
 		if err != nil {
-			check.errorf(pos, BrokenImport, "could not import %s (%s)", path, err)
+			check.errorf(pos, BrokenImport, "3: could not import %s (%s)", path, err)
+			if os.Getenv("TESTFUZZ") == "ADAMS" {
+				panic("HEEER")
+			}
 			if imp == nil {
 				// create a new fake package
 				// come up with a sensible package name (heuristic)

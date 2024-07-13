@@ -467,10 +467,26 @@ func runBuild(ctx context.Context, cmd *base.Command, args []string) {
 		}
 	}()
 
-	pkgs := load.PackagesAndErrors(ctx, load.PackageOpts{AutoVCS: true}, args)
+	pkgs := load.PackagesAndErrors(ctx, load.PackageOpts{AutoVCS: true, ModResolveTests: true}, args)
+	if os.Getenv("TESTFUZZ") == "ADAMS" {
+		/*plist := load.TestPackageList(ctx, load.PackageOpts{AutoVCS: true, ModResolveTests: true}, pkgs)
+
+		for _, pkg := range plist {
+			fmt.Println("pkg.Name: ", pkg.Name)
+			for _, path := range pkg.TestImports {
+				fmt.Println("path--: ", path)
+			}
+		}
+		pkgs = append(pkgs, plist...)*/
+		fmt.Println("len(pkgs): ", len(pkgs))
+	}
+
 	load.CheckPackageErrors(pkgs)
 
 	explicitO := len(cfg.BuildO) > 0
+	/*if os.Getenv("TESTFUZZ") == "ADAMS" {
+		panic("DONE")
+	}*/
 
 	if len(pkgs) == 1 && pkgs[0].Name == "main" && cfg.BuildO == "" {
 		cfg.BuildO = pkgs[0].DefaultExecName()
@@ -494,7 +510,15 @@ func runBuild(ctx context.Context, cmd *base.Command, args []string) {
 
 	depMode := ModeBuild
 
-	pkgs = omitTestOnly(pkgsFilter(pkgs))
+	//pkgs = omitTestOnly(pkgsFilter(pkgs))
+	if os.Getenv("TESTFUZZ") == "ADAMS" {
+		for _, pkg := range pkgs {
+			fmt.Println("bbpkg.Name: ", pkg.Name)
+			for _, path := range pkg.TestImports {
+				fmt.Println("bbpath--: ", path)
+			}
+		}
+	}
 
 	// Special case -o /dev/null by not writing at all.
 	if base.IsNull(cfg.BuildO) {
@@ -544,6 +568,18 @@ func runBuild(ctx context.Context, cmd *base.Command, args []string) {
 		p.Stale = true // must build - not up to date
 		p.StaleReason = "build -o flag in use"
 		a := b.AutoAction(ModeInstall, depMode, p)
+		if os.Getenv("TESTFUZZ") == "ADAMS" {
+			_, testDeps, _, err := load.TestPackagesFor(ctx, load.PackageOpts{AutoVCS: true, ModResolveTests: true}, p, nil)
+			if err != nil {
+				panic(err)
+			}
+			a.Deps = append(a.Deps, b.AutoAction(ModeBuild, depMode, testDeps))
+			//testDeps := load.TestPackageList(ctx, load.PackageOpts{AutoVCS: true, ModResolveTests: true}, pkgs)
+			/*for _, testDep := range testDeps {
+				fmt.Println("a.Depssss: ", testDep.Name)
+				a.Deps = append(a.Deps, b.AutoAction(ModeBuild, depMode, testDep))
+			}*/
+		}
 		b.Do(ctx, a)
 		return
 	}
@@ -693,7 +729,10 @@ func runInstall(ctx context.Context, cmd *base.Command, args []string) {
 
 	modload.InitWorkfile()
 	BuildInit()
-	pkgs := load.PackagesAndErrors(ctx, load.PackageOpts{AutoVCS: true}, args)
+	pkgs := load.PackagesAndErrors(ctx, load.PackageOpts{AutoVCS: true, ModResolveTests: true}, args)
+	if os.Getenv("TESTFUZZ") == "ADAMS" {
+		fmt.Println(pkgs)
+	}
 	if cfg.ModulesEnabled && !modload.HasModRoot() {
 		haveErrors := false
 		allMissingErrors := true
